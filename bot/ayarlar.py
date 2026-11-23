@@ -11,7 +11,8 @@ def _bool(ad, varsayilan):
 
 # --- Telegram (GitHub Secrets'tan gelir) ---
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
-TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")
+TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")      # senin sohbetin: özet ve uyarılar buraya
+TELEGRAM_KANAL = os.environ.get("TELEGRAM_KANAL", "")          # ilanlar buraya (ör. @kpsssizilanlar); boşsa sohbete
 
 # DENEME=1 ise mesajlar Telegram'a gitmez, sadece ekrana yazılır (durum da kaydedilmez)
 DENEME = _bool("DENEME", False)
