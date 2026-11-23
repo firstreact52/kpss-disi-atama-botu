@@ -92,11 +92,12 @@ def akademik_mi(baslik: str, metin: str = "") -> bool:
     b = sade(baslik)
     if re.search(_AKADEMIK, b) and not re.search(r"(sozlesmeli personel|isci|idari|memur|bilisim)", b):
         return True
+    # Metne bak: ilk kısımda akademik kadro geçiyor ve idari/işçi kadrosu geçmiyorsa akademik ilanıdır
     t = sade(metin[:4000])
-    if re.search(_AKADEMIK, t) and not re.search(
+    if re.search(_AKADEMIK, t[:1500]) and not re.search(
             r"(sozlesmeli personel|isci alin|surekli isci|4/b|memur kadro|bilisim personeli|"
             r"hemsire|tekniker|teknisyen|koruma ve guvenlik)", t):
-        return not b or bool(re.search(_AKADEMIK, b)) or "akademik" in b
+        return True
     return False
 
 
