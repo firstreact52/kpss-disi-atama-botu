@@ -41,6 +41,9 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           DENEME: ${{ inputs.deneme && '1' || '0' }}
+          # Sadece %100 KPSS'siz ilanlar: kısmen KPSS'siz ve metni okunamayan ilanlar gönderilmez
+          KISMEN_KPSSSIZ_GONDER: "0"
+          BELIRSIZ_GONDER: "0"
           # İsteğe bağlı ayarlar (Settings > Secrets and variables > Actions > Variables)
           AKADEMIK_ILANLAR: ${{ vars.AKADEMIK_ILANLAR }}
           ONE_CIKAN_ILLER: ${{ vars.ONE_CIKAN_ILLER }}
