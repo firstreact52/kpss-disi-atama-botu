@@ -12,7 +12,8 @@ def _bool(ad, varsayilan):
 # --- Telegram (GitHub Secrets'tan gelir) ---
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID", "")      # senin sohbetin: özet ve uyarılar buraya
-TELEGRAM_KANAL = os.environ.get("TELEGRAM_KANAL", "")          # ilanlar buraya (ör. @kpsssizilanlar); boşsa sohbete
+TELEGRAM_KANAL = os.environ.get("TELEGRAM_KANAL", "")          # KPSS'siz ilanlar buraya (ör. @kpsssizilanlar); boşsa sohbete
+TELEGRAM_KANAL_KPSSLI = os.environ.get("TELEGRAM_KANAL_KPSSLI", "")  # KPSS'li ilanlar buraya (ör. @kamuatamaradar); boşsa gönderilmez
 
 # DENEME=1 ise mesajlar Telegram'a gitmez, sadece ekrana yazılır (durum da kaydedilmez)
 DENEME = _bool("DENEME", False)
@@ -27,7 +28,7 @@ HABERLERI_TARA = _bool("HABERLERI_TARA", True)        # Google Haberler güvenli
 ONE_CIKAN_ILLER = [i.strip() for i in (os.environ.get("ONE_CIKAN_ILLER") or "Ordu").split(",") if i.strip()]
 
 # --- Çalışma sınırları ---
-MAKS_MESAJ_HER_TUR = 80          # bir çalışmada en fazla bu kadar mesaj (fazlası sıraya girer)
+MAKS_MESAJ_HER_TUR = 150         # bir çalışmada en fazla bu kadar mesaj (fazlası sıraya girer)
 MESAJ_ARASI_SANIYE = 1.6         # Telegram hız sınırı için
 BELIRSIZ_BEKLEME_SAAT = 6        # metinsiz ilan için daha iyi kaynak beklenir
 ILK_CALISMA_GERIYE_ILAN = 150    # ilk çalışmada memurlar'da geriye kaç ilan bakılsın (~1 hafta)
