@@ -1,0 +1,67 @@
+name: KPSS dışı atama botu
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"        # her 15 dakikada bir (GitHub bazen birkaç dakika geciktirebilir)
+  workflow_dispatch:               # Actions sekmesinden elle çalıştırma
+    inputs:
+      deneme:
+        description: "Deneme modu (Telegram'a göndermeden sadece ekrana yaz)"
+        type: boolean
+        default: false
+
+# Aynı anda iki çalışma OLMASIN (aynı ilanın iki kez gitmesini engeller)
+concurrency:
+  group: atama-botu
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  calistir:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Kütüphaneleri kur
+        run: pip install -r requirements.txt
+
+      - name: Testler
+        run: python -m unittest discover -s tests
+
+      - name: Botu çalıştır
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          DENEME: ${{ inputs.deneme && '1' || '0' }}
+          # İsteğe bağlı ayarlar (Settings > Secrets and variables > Actions > Variables)
+          AKADEMIK_ILANLAR: ${{ vars.AKADEMIK_ILANLAR }}
+          ONE_CIKAN_ILLER: ${{ vars.ONE_CIKAN_ILLER }}
+          HABERLERI_TARA: ${{ vars.HABERLERI_TARA }}
+        run: python -m bot.ana
+
+      # Bot hata verse bile görülen ilanlar kaydedilsin -> aynı ilan tekrar gitmez
+      - name: Durumu kaydet
+        if: always()
+        run: |
+          git config user.name "atama-botu"
+          git config user.email "atama-botu@users.noreply.github.com"
+          git add durum/ || true
+          if git diff --cached --quiet; then
+            echo "Değişiklik yok"
+            exit 0
+          fi
+          git commit -m "durum güncellendi"
+          for i in 1 2 3 4 5; do
+            git push && exit 0
+            git pull --rebase -X theirs && continue
+            sleep 5
+          done
+          exit 1
