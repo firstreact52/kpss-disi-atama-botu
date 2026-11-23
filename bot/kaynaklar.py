@@ -51,8 +51,10 @@ KK_AKADEMIK_TURLER = ("öğretim üyesi", "öğretim görevlisi", "araştırma g
 
 
 def kariyerkapisi_tara(s: requests.Session, yeni_mi):
-    r = s.post(f"{KK_API}/ilan/GetIseAlimPage", timeout=30,
-               json={"krM_ID": 0, "searchText": "", "il": "0", "ilanTuru": "0"})
+    # Not: Kariyer Kapısı API'si yurt dışı sunuculardan (GitHub) gelen bağlantıları kabul etmeyebilir.
+    # Bu yüzden kısa zaman aşımı + tekrar denemesiz istek; diğer kaynaklar beklemesin.
+    r = requests.post(f"{KK_API}/ilan/GetIseAlimPage", timeout=(6, 25), headers=dict(s.headers),
+                      json={"krM_ID": 0, "searchText": "", "il": "0", "ilanTuru": "0"})
     r.raise_for_status()
     liste = r.json().get("searchIlan")
     if liste is None:
@@ -83,7 +85,8 @@ def kariyerkapisi_tara(s: requests.Session, yeni_mi):
 
         if it.get("ilanTipi") == 1:
             try:
-                d = s.post(f"{KK_API}/ilan/GetIlanPreviewPublic", json={"ilanGuid": guid}, timeout=30)
+                d = requests.post(f"{KK_API}/ilan/GetIlanPreviewPublic", json={"ilanGuid": guid},
+                                  timeout=(6, 25), headers=dict(s.headers))
                 d.raise_for_status()
                 dj = d.json() or {}
                 ilan.metin = bbcode_temizle(dj.get("ilanMetni") or "")
@@ -115,15 +118,28 @@ RG = "https://www.resmigazete.gov.tr"
 
 
 def _pdf_metni(icerik: bytes) -> str:
-    from pypdf import PdfReader
-    okuyucu = PdfReader(io.BytesIO(icerik))
-    parcalar = []
-    for sayfa in okuyucu.pages[:30]:
+    metin = ""
+    try:
+        from pypdf import PdfReader
+        okuyucu = PdfReader(io.BytesIO(icerik))
+        parcalar = []
+        for sayfa in okuyucu.pages[:30]:
+            try:
+                parcalar.append(sayfa.extract_text() or "")
+            except Exception:
+                continue
+        metin = "\n".join(parcalar)
+    except Exception as e:
+        log.info("pypdf okuyamadı (%s), pdfminer deneniyor", e)
+    if len(metin.strip()) < 200:
         try:
-            parcalar.append(sayfa.extract_text() or "")
-        except Exception:
-            continue
-    return tireleri_birlestir("\n".join(parcalar))
+            from pdfminer.high_level import extract_text
+            metin = extract_text(io.BytesIO(icerik), maxpages=30) or metin
+        except Exception as e:
+            log.info("pdfminer de okuyamadı: %s", e)
+            if not metin.strip():
+                raise
+    return tireleri_birlestir(metin)
 
 
 def resmigazete_tara(s: requests.Session, yeni_mi, bugun):
@@ -339,6 +355,9 @@ _HABER_KURUM = re.compile(r"(universite|belediye|bakanlig|mudurlug|baskanlig|kur
                           r"karayollari|dsi|ogm|meteoroloji|kizilay|tubitak|havelsan|aselsan|tusas|roketsan)")
 _HABER_GENEL = re.compile(r"(hangi kurumlar|nasil basvurulur\?*$|ilanlari (yayimlandi|yayinlandi)|"
                           r"\biskur is ilanlari\b|bu (hafta|ay)|gunun ilanlari|guncel ilanlar|liste(si)?$)")
+# Soru / tahmin / açıklama haberleri (somut ilan değil)
+_HABER_SPEKULASYON = re.compile(r"(\?|ne zaman|nasil|acikladi|iddia|bekleniyor|merak edilen|yeni detay|"
+                                r"neler\b|hangi\b|kimler|olacak mi|yapilacak mi)")
 
 
 def haber_tara(s: requests.Session, yeni_mi):
@@ -353,10 +372,13 @@ def haber_tara(s: requests.Session, yeni_mi):
             baslik = (item.findtext("title") or "").strip()
             link = (item.findtext("link") or "").strip()
             kaynak = (item.findtext("source") or "").strip()
-            if kaynak and baslik.endswith(" - " + kaynak):
-                baslik = baslik[: -len(kaynak) - 3].strip()
+            parcalar = re.split(r"\s+[-|–]\s+", baslik)   # "Başlık - Site Adı - Son Dakika" -> "Başlık"
+            if len(parcalar) > 1 and len(parcalar[0]) >= 25:
+                baslik = parcalar[0].strip()
             t = sade(baslik)
             if not _HABER_KPSSSIZ.search(t) or not _HABER_KURUM.search(t) or _HABER_GENEL.search(t):
+                continue
+            if _HABER_SPEKULASYON.search(t):
                 continue
             if not re.search(r"(alim|alacak|alinacak|isci|personel|memur|eleman)", t):
                 continue
