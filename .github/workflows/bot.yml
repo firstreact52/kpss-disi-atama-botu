@@ -40,6 +40,7 @@ jobs:
         env:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          TELEGRAM_KANAL: "@kpsssizilanlar"   # ilanların gideceği herkese açık kanal
           DENEME: ${{ inputs.deneme && '1' || '0' }}
           # Sadece %100 KPSS'siz ilanlar: kısmen KPSS'siz ve metni okunamayan ilanlar gönderilmez
           KISMEN_KPSSSIZ_GONDER: "0"
