@@ -98,3 +98,16 @@ class PdfYedekTesti(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class IkiKanalTesti(unittest.TestCase):
+    def test_yonlendirme(self):
+        from bot import ayarlar, telegram
+        eski = (ayarlar.TELEGRAM_KANAL, ayarlar.TELEGRAM_KANAL_KPSSLI, ayarlar.TELEGRAM_CHAT_ID)
+        try:
+            ayarlar.TELEGRAM_KANAL, ayarlar.TELEGRAM_KANAL_KPSSLI, ayarlar.TELEGRAM_CHAT_ID = "@siz", "@li", "1"
+            self.assertEqual(telegram.hedef_sohbet("🟢 <b>KPSS ŞARTSIZ</b>"), "@siz")
+            self.assertEqual(telegram.hedef_sohbet("🔵 <b>KPSS ŞARTLI</b>"), "@li")
+            self.assertEqual(telegram.hedef_sohbet("🤖 özet"), "1")
+        finally:
+            ayarlar.TELEGRAM_KANAL, ayarlar.TELEGRAM_KANAL_KPSSLI, ayarlar.TELEGRAM_CHAT_ID = eski
