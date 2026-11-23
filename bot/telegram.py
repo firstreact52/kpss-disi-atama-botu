@@ -42,9 +42,12 @@ _deneme_sayac = 0
 # İlan mesajları bu işaretlerle başlar ve kanala gider. Diğer her şey (başlangıç, özet, uyarı)
 # sadece yöneticinin kendi sohbetine gider; böylece uyarılar asla herkese açık kanala düşmez.
 ILAN_ISARETLERI = ("\U0001F7E2", "\U0001F7E1", "\u2754")
+KPSSLI_ISARETI = "\U0001F535"  # 🔵 KPSS'li ilanlar ayrı kanala
 
 
 def hedef_sohbet(metin: str) -> str:
+    if metin.startswith(KPSSLI_ISARETI):
+        return ayarlar.TELEGRAM_KANAL_KPSSLI or ayarlar.TELEGRAM_CHAT_ID
     if ayarlar.TELEGRAM_KANAL and metin.startswith(ILAN_ISARETLERI):
         return ayarlar.TELEGRAM_KANAL
     return ayarlar.TELEGRAM_CHAT_ID
