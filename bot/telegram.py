@@ -39,6 +39,16 @@ def _cagir(metot: str, veri: dict):
 
 _deneme_sayac = 0
 
+# İlan mesajları bu işaretlerle başlar ve kanala gider. Diğer her şey (başlangıç, özet, uyarı)
+# sadece yöneticinin kendi sohbetine gider; böylece uyarılar asla herkese açık kanala düşmez.
+ILAN_ISARETLERI = ("\U0001F7E2", "\U0001F7E1", "\u2754")
+
+
+def hedef_sohbet(metin: str) -> str:
+    if ayarlar.TELEGRAM_KANAL and metin.startswith(ILAN_ISARETLERI):
+        return ayarlar.TELEGRAM_KANAL
+    return ayarlar.TELEGRAM_CHAT_ID
+
 
 def gonder(metin: str) -> int:
     global _deneme_sayac
@@ -47,7 +57,7 @@ def gonder(metin: str) -> int:
         print("\n----- [DENEME] Telegram mesajı -----\n" + metin, flush=True)
         return _deneme_sayac
     sonuc = _cagir("sendMessage", {
-        "chat_id": ayarlar.TELEGRAM_CHAT_ID, "text": metin, "parse_mode": "HTML",
+        "chat_id": hedef_sohbet(metin), "text": metin, "parse_mode": "HTML",
         "disable_web_page_preview": True,
     })
     return sonuc["message_id"]
@@ -59,7 +69,7 @@ def duzenle(mesaj_id: int, metin: str):
         return
     try:
         _cagir("editMessageText", {
-            "chat_id": ayarlar.TELEGRAM_CHAT_ID, "message_id": mesaj_id, "text": metin,
+            "chat_id": hedef_sohbet(metin), "message_id": mesaj_id, "text": metin,
             "parse_mode": "HTML", "disable_web_page_preview": True,
         })
     except TelegramHata as e:
