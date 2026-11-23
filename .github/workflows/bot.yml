@@ -2,7 +2,7 @@ name: KPSS dışı atama botu
 
 on:
   schedule:
-    - cron: "*/15 * * * *"        # her 15 dakikada bir (GitHub bazen birkaç dakika geciktirebilir)
+    - cron: "17 6,15 * * *"       # günde 2 kez: 09:17 ve 18:17 (Türkiye saati). GitHub birkaç dakika geciktirebilir
   workflow_dispatch:               # Actions sekmesinden elle çalıştırma
     inputs:
       deneme:
