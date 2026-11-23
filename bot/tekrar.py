@@ -2,7 +2,7 @@
 
 Her ilan için 3 parmak izi tutulur:
   1) kurum adı kelimeleri (Rektörlüğü, Başkanlığı gibi genel ekler atılmış)
-  2) ilan metninin MinHash imzası (metinler %40+ aynıysa aynı ilan)
+  2) ilan metninin MinHash imzası (aynı ilan farklı sitelerde ~%90+ aynı metin)
   3) başlık kelimeleri, son başvuru tarihi, kadro sayısı
 """
 import base64
@@ -91,13 +91,16 @@ def parmak_izi(ilan) -> dict:
         "mh": minhash(ilan.metin) if ilan.metin else "",
         "son": ilan.son_basvuru.isoformat() if ilan.son_basvuru else None,
         "kadro": ilan.kadro,
+        "kaynak": ilan.kaynak,
     }
 
 
 def ayni_ilan_mi(p1: dict, p2: dict, ayni_kaynak: bool = False) -> bool:
     """İki parmak izi aynı ilana mı ait?"""
-    if ayni_kaynak:
+    haber = "haber" in (p1.get("kaynak"), p2.get("kaynak"))
+    if ayni_kaynak and not haber:
         # Aynı site aynı ilanı iki farklı numarayla yayınlamaz (güncellemeler aynı numarada kalır).
+        # Haberler hariç: aynı ilan için birçok gazete ayrı haber yapar.
         return False
     kurum = max(jaccard(p1["kurum"], p2["kurum"]), kapsama(p1["kurum"], p2["kurum"]) * 0.9)
     mh = minhash_benzerlik(p1.get("mh"), p2.get("mh"))
@@ -123,6 +126,8 @@ def ayni_ilan_mi(p1: dict, p2: dict, ayni_kaynak: bool = False) -> bool:
     bas = jaccard(p1["baslik"], p2["baslik"])
     if bas >= 0.5:
         return True
+    if haber and kurum >= 0.8:
+        return True    # haber başlıkları çok farklı yazılır; kurum aynıysa aynı ilan say
     # Tarih/kadro bilinmiyorsa ve başlıklar çelişmiyorsa (biri çok genelse) aynı say
     if not (p1.get("son") and p2.get("son")) and not (p1.get("kadro") and p2.get("kadro")):
         return bas >= 0.25 or not p1["baslik"] or not p2["baslik"]
