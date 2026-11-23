@@ -70,9 +70,12 @@ def tarih_tr(t: date) -> str:
     return f"{t.day} {AYLAR_TR[t.month]} {t.year}"
 
 
-def mesaj_govdesi(ilan: Ilan, karar: Karar, bugun: date) -> str:
+def mesaj_govdesi(ilan: Ilan, karar: Karar, bugun: date, kpssli_kanal=False) -> str:
     k = telegram.kacis
-    etiket = {KPSSSIZ: "🟢 <b>KPSS ŞARTSIZ</b>",
+    if kpssli_kanal and karar.tur == KISMEN:
+        karar = Karar(KPSSLI, "Bazı kadrolarda KPSS şartı var, bazılarında yok — ilan metnine bak.", karar.kanit)
+    etiket = {KPSSLI: "🔵 <b>KPSS ŞARTLI</b>",
+              KPSSSIZ: "🟢 <b>KPSS ŞARTSIZ</b>",
               KISMEN: "🟡 <b>KISMEN KPSS ŞARTSIZ</b>",
               BELIRSIZ: "❔ <b>KPSS DURUMU BELİRSİZ</b>"}.get(karar.tur, "")
     if ilan.kaynak == "haber":
@@ -196,12 +199,14 @@ def isle(ilan: Ilan, d: dict, bugun: date, simdi: float, istatistik: dict):
     kayit = {"anahtar": ilan.anahtar, "kaynak": ilan.kaynak, "karar": karar.tur, "iz": iz, "ts": simdi,
              "baslik": ilan.baslik[:200], "son": iz["son"], "linkler": ilan_linkleri(ilan)}
 
-    if karar.tur == KPSSLI:
-        istatistik["kpssli"] += 1
+    if karar.tur == KPSSLI or (karar.tur == KISMEN and not ayarlar.KISMEN_KPSSSIZ_GONDER):
+        if karar.tur == KPSSLI:
+            istatistik["kpssli"] += 1
         log.info("KPSS'Lİ: %s | %s", ilan.baslik[:80], karar.kanit[:1])
-        d["kayitlar"].append(kayit)
-        return
-    if karar.tur == KISMEN and not ayarlar.KISMEN_KPSSSIZ_GONDER:
+        if ayarlar.TELEGRAM_KANAL_KPSSLI and ilan.kaynak != "haber":
+            kayit["govde"] = mesaj_govdesi(ilan, karar, bugun, kpssli_kanal=True)
+            d["kuyruk"].append({"tip": "yeni", "anahtar": ilan.anahtar})
+            istatistik["kpssli_gonderilen"] += 1
         d["kayitlar"].append(kayit)
         return
 
@@ -290,8 +295,8 @@ def gunluk_ozet(d: dict, yerel: datetime):
     _guvenli_gonder(
         "🤖 <b>Günlük kontrol – bot çalışıyor</b>\n"
         f"Taranan ilan: {g.get('taranan', 0)}\n"
-        f"Gönderilen KPSS'siz: {g.get('gonderilen', 0)}\n"
-        f"KPSS'li diye elenen: {g.get('kpssli', 0)}\n"
+        f"Gönderilen toplam mesaj: {g.get('gonderilen', 0)}\n"
+        f"KPSS'li ilan: {g.get('kpssli', 0)} (KPSS'li kanala giden: {g.get('kpssli_gonderilen', 0)})\n"
         f"Tekrar engellenen: {g.get('tekrar', 0)}\n"
         f"Diğer elenen (süresi geçmiş, sonuç duyurusu vb.): {g.get('elenen', 0)}\n"
         + "\n".join(durumlar))
@@ -299,6 +304,26 @@ def gunluk_ozet(d: dict, yerel: datetime):
 
 
 # ------------------------------------------------------------------ çalıştır
+def kpssli_gecis(d: dict, bugun: date):
+    """KPSS'li kanal ilk açıldığında: daha önce sadece kaydedilip gönderilmemiş, süresi dolmamış
+    KPSS'li ilanları unut ki bu çalışmada yeniden okunup KPSS'li kanala gönderilsin (bir kez)."""
+    if not ayarlar.TELEGRAM_KANAL_KPSSLI or d.get("kpssli_gecis_bitti"):
+        return
+    kalan = []
+    for k in d["kayitlar"]:
+        bekleyen = (k.get("karar") in (KPSSLI, KISMEN) and not k.get("mesaj_id") and not k.get("govde")
+                    and not (k.get("son") and date.fromisoformat(k["son"]) < bugun))
+        if not bekleyen:
+            kalan.append(k)
+            continue
+        d["gorulen"].pop(k["anahtar"], None)
+        if k["anahtar"].startswith("memurlar:"):
+            d["memurlar"].setdefault("eksikler", {})[k["anahtar"].split(":", 1)[1]] = time.time()
+    log.info("KPSS'li kanal geçişi: %d ilan yeniden okunacak", len(d["kayitlar"]) - len(kalan))
+    d["kayitlar"] = kalan
+    d["kpssli_gecis_bitti"] = True
+
+
 def calistir():
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
     d = durum_oku()
@@ -309,8 +334,9 @@ def calistir():
 
     if d["gunluk"].get("tarih") != bugun.isoformat():
         d["gunluk"] = {"tarih": bugun.isoformat()}
-    istatistik = {k: 0 for k in ("taranan", "elenen", "kpssli", "tekrar", "gonderilen")}
+    istatistik = {k: 0 for k in ("taranan", "elenen", "kpssli", "kpssli_gonderilen", "tekrar", "gonderilen")}
 
+    kpssli_gecis(d, bugun)
     ilk_calisma = not d.get("ilk_calisma_bitti")
     if ilk_calisma:
         _guvenli_gonder("🚀 <b>KPSS dışı atama botu başladı.</b>\n"
