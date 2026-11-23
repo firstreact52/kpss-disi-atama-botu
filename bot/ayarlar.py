@@ -26,14 +26,14 @@ HABERLERI_TARA = _bool("HABERLERI_TARA", True)        # Google Haberler güvenli
 ONE_CIKAN_ILLER = [i.strip() for i in (os.environ.get("ONE_CIKAN_ILLER") or "Ordu").split(",") if i.strip()]
 
 # --- Çalışma sınırları ---
-MAKS_MESAJ_HER_TUR = 25          # bir çalışmada en fazla bu kadar mesaj (fazlası sıraya girer)
+MAKS_MESAJ_HER_TUR = 80          # bir çalışmada en fazla bu kadar mesaj (fazlası sıraya girer)
 MESAJ_ARASI_SANIYE = 1.6         # Telegram hız sınırı için
 BELIRSIZ_BEKLEME_SAAT = 6        # metinsiz ilan için daha iyi kaynak beklenir
 ILK_CALISMA_GERIYE_ILAN = 150    # ilk çalışmada memurlar'da geriye kaç ilan bakılsın (~1 hafta)
 MEMURLAR_ARDISIK_BOS_LIMIT = 8   # art arda bu kadar boş numara görünce tarama durur
 MEMURLAR_MAKS_TARAMA = 250       # bir çalışmada en fazla bu kadar numara
-HATA_UYARI_ESIGI = 6             # bir kaynak art arda bu kadar çalışmada hata verirse uyarı
-GUNLUK_OZET_SAATI = 21           # her gün bu saatte (TR) "bot çalışıyor" özeti
+HATA_UYARI_ESIGI = 2             # bir kaynak art arda bu kadar çalışmada hata verirse uyarı (2 = 1 gün)
+GUNLUK_OZET_SAATI = 18           # bu saatten sonraki ilk çalışmada (akşam) "bot çalışıyor" özeti
 KAYIT_SAKLAMA_GUN = 60           # tekrar kontrolü için geçmiş kaç gün tutulsun
 
 DURUM_DOSYASI = os.environ.get("DURUM_DOSYASI", "durum/durum.json")
