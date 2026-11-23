@@ -268,7 +268,7 @@ def memurlar_tara(s: requests.Session, yeni_mi, durum: dict):
     eksikler = durum.setdefault("eksikler", {})
     simdi = time.time()
 
-    denenecek = sorted({int(n) for n in eksikler})[:30]  # daha önce boş dönen numaraları tekrar dene
+    denenecek = sorted({int(n) for n in eksikler})[:200]  # daha önce boş dönen numaraları tekrar dene
     sonuc, bos_seri, no, taranan = [], 0, son_no, 0
     en_son_dolu = son_no
 
